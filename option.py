@@ -4,6 +4,7 @@ March 2024
 """
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy_financial as npf
 
 class Put:
     """
@@ -96,10 +97,12 @@ class Put:
 
         return (nu_hi + nu_lo) / 2.0
     
-    def expected_max(self, nu):
+    def comp_paths(self, nu):
         """
-        The expectation of the maximum stock price, over the N periods
+        Compute all possible paths
         """
+        # ADD CHECKS ON NU
+
         combos = 2**self.N
         paths = np.zeros((2**self.N, self.N+1))
         paths[:,0] = self.S0
@@ -115,9 +118,33 @@ class Put:
                 if i % subgroup_size == 0:
                     prop_change *= -1
 
+        return paths
+
+    def expected_max(self, nu):
+        """
+        The expectation of the maximum stock price, over the N periods
+        """
+        paths = self.comp_paths(nu)
+
         path_max = paths.max(axis=1)
             
         return path_max.mean()
+    
+    def paths_irr(self, cash_flow, nu=0.05):
+
+        # ADD CHECKS ON CASH_FLOW
+
+        paths = self.comp_paths(nu)
+
+        irr_vec = np.zeros(paths.shape[0])
+
+        indices = [i for i in range(0, self.N+1, 2)]
+        
+        for i in range(paths.shape[0]):
+            dollar_cash_flow = paths[i,indices] * cash_flow
+            irr_vec[i] = npf.irr(dollar_cash_flow)
+
+        return irr_vec
 
 ######
 # Test
@@ -125,7 +152,7 @@ class Put:
     
 S0 = 1.28065
 K  = 1.28065
-N = 3
+N = 10
 my_option = Put(S0, K, N)
 
 nu_single=0.05
@@ -144,6 +171,13 @@ plt.plot(nu, V)
 plt.show()
 """
 
-paths = my_option.expected_max(nu_single)
+em = my_option.expected_max(nu_single)
 
-print(paths)
+print(em)
+
+cash_flow = [-100, 15, 15, 15, 15, 115]
+
+irr_vec = my_option.paths_irr(cash_flow)
+
+plt.hist(irr_vec)
+plt.show()
