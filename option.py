@@ -40,6 +40,7 @@ class Put:
         """
         Compute the value of the option.
 
+        Used:
         https://quantpy.com.au/binomial-tree-model/intro-to-binomial-trees/
 
         nu : asset price increase/decrease proportion
@@ -94,6 +95,29 @@ class Put:
                 V_lo = V_mid
 
         return (nu_hi + nu_lo) / 2.0
+    
+    def expected_max(self, nu):
+        """
+        The expectation of the maximum stock price, over the N periods
+        """
+        combos = 2**self.N
+        paths = np.zeros((2**self.N, self.N+1))
+        paths[:,0] = self.S0
+
+        subgroup_size = combos
+        for j in range(1, self.N+1):
+            subgroup_size /= 2
+            i = 0
+            prop_change = nu
+            while i < combos:
+                paths[i,j] = (1 + prop_change) * paths[i,j-1]
+                i += 1
+                if i % subgroup_size == 0:
+                    prop_change *= -1
+
+        path_max = paths.max(axis=1)
+            
+        return path_max.mean()
 
 ######
 # Test
@@ -101,20 +125,25 @@ class Put:
     
 S0 = 1.28065
 K  = 1.28065
-N = 1
+N = 3
 my_option = Put(S0, K, N)
 
-V0 = my_option.value(0.05)
+nu_single=0.05
+V0 = my_option.value(nu_single)
 print(V0)
 
 nu0 = my_option.calibrate(V0)
 print(nu0)
 
+"""
 nu = np.linspace(0.001, 0.99, 100)
 V = np.zeros(nu.shape)
-
 for i, value in enumerate(nu):
     V[i] = my_option.value(value)
-
 plt.plot(nu, V)
 plt.show()
+"""
+
+paths = my_option.expected_max(nu_single)
+
+print(paths)
