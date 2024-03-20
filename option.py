@@ -2,6 +2,7 @@
 Validus Case Study
 March 2024
 """
+import matplotlib.pyplot as plt
 import numpy as np
 
 class Put:
@@ -37,8 +38,17 @@ class Put:
 
     def value(self, nu):
         """
+        Compute the value of the option.
+
+        https://quantpy.com.au/binomial-tree-model/intro-to-binomial-trees/
+
         nu : asset price increase/decrease proportion
         """
+        # Checks on nu
+        if not isinstance(nu, float):
+            raise TypeError("nu not an instance of float")
+        if nu < 0.0 or nu >= 1.0:
+            raise ValueError("nu < 0.0 or nu >= 1.0")
 
         # Asset prices at maturity:
         d_vec = (1-nu)**(np.arange(self.N, -1, -1))
@@ -54,12 +64,57 @@ class Put:
 
         return V[0]
     
+    def calibrate(self, V):
+        """
+        Given the strike and value of the option, calibrate nu
+        """
+
+        # Checks on V
+        if not isinstance(V, float):
+            raise TypeError("V is not an instance of float")
+        
+        nu_lo = 0.0
+        nu_hi = 0.999
+        V_lo = self.value(nu_lo)
+        V_hi = self.value(nu_hi)
+
+        if V > V_hi or V < V_lo:
+            raise ValueError("V outside the range of possible option values")
+        
+        epsilon = 0.0001
+        while V_hi - V_lo > epsilon:
+
+            nu_mid = (nu_hi + nu_lo) / 2.0
+            V_mid = self.value(nu_mid)
+            if V < V_mid:
+                nu_hi = nu_mid
+                V_hi = V_mid
+            else:
+                nu_lo = nu_mid
+                V_lo = V_mid
+
+        return (nu_hi + nu_lo) / 2.0
+
+######
+# Test
+######
+    
 S0 = 1.28065
 K  = 1.28065
-N = 10
+N = 1
 my_option = Put(S0, K, N)
-nu = 0.05
 
-V = my_option.value(nu)
+V0 = my_option.value(0.05)
+print(V0)
 
-print(V)
+nu0 = my_option.calibrate(V0)
+print(nu0)
+
+nu = np.linspace(0.001, 0.99, 100)
+V = np.zeros(nu.shape)
+
+for i, value in enumerate(nu):
+    V[i] = my_option.value(value)
+
+plt.plot(nu, V)
+plt.show()
