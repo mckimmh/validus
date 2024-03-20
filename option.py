@@ -38,4 +38,5 @@ class Put:
         """
         nu : asset price increase/decrease proportion
         """
+        
 
