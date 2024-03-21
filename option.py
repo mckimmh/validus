@@ -1,5 +1,4 @@
 """
-Validus Case Study
 March 2024
 """
 import matplotlib.pyplot as plt
