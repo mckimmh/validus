@@ -46,11 +46,7 @@ class Put:
 
         nu : asset price increase/decrease proportion
         """
-        # Checks on nu
-        if not isinstance(nu, float):
-            raise TypeError("nu not an instance of float")
-        if nu < 0.0 or nu >= 1.0:
-            raise ValueError("nu < 0.0 or nu >= 1.0")
+        self.check_nu(nu)
 
         # Asset prices at maturity:
         d_vec = (1-nu)**(np.arange(self.N, -1, -1))
@@ -100,8 +96,10 @@ class Put:
     def comp_paths(self, nu):
         """
         Compute all possible paths
+
+        nu : asset price increase/decrease proportion
         """
-        # ADD CHECKS ON NU
+        self.check_nu(nu)
 
         combos = 2**self.N
         paths = np.zeros((2**self.N, self.N+1))
@@ -123,6 +121,8 @@ class Put:
     def expected_max(self, nu):
         """
         The expectation of the maximum stock price, over the N periods
+
+        nu : asset price increase/decrease proportion
         """
         paths = self.comp_paths(nu)
 
@@ -131,8 +131,15 @@ class Put:
         return path_max.mean()
     
     def paths_irr(self, cash_flow, nu=0.05):
+        """
+        Compute the Internal Rate of Return (IRR) for all paths of the stock.
 
-        # ADD CHECKS ON CASH_FLOW
+        cash_flow : cash flow.
+        nu        : asset price increase/decrease proportion.
+        """
+
+        # Checks on cash flow
+        
 
         paths = self.comp_paths(nu)
 
@@ -145,6 +152,49 @@ class Put:
             irr_vec[i] = npf.irr(dollar_cash_flow)
 
         return irr_vec
+    
+    def hedge_irr(self, cash_flow, notional_amount=100, nu=0.05):
+        """
+        Compute the Internal Rate of Return (IRR) for all paths of the stock.
+
+        option_value : value of the option.
+        strike       : strike price of the option.
+        cash_flow    : cash flow.
+        nu           : asset price increase/decrease proportion.
+        """
+
+        # ADD CHECKS ON PARAMETERS
+
+        # Compute the option value and subtract it from the outgoing cash flow
+        option_val_unit = self.value(nu) # dollar value
+        option_val_pounds = notional_amount * option_val_unit / self.S0
+        cash_flow[0] -= option_val_pounds
+
+        paths = self.comp_paths(nu)
+
+        irr_vec = np.zeros(paths.shape[0])
+
+        indices = [i for i in range(0, self.N+1, 2)]
+
+        for i in range(paths.shape[0]):
+
+            # Dollar cash flow without hedging
+            dollars = paths[i, indices] * cash_flow
+            
+            # Compute effect of the hedge
+            dollars[-1] = ((cash_flow[-1] - notional_amount)*paths[i, -1]
+                           + notional_amount * max(self.K, paths[i, -1]))
+            
+            irr_vec[i] = npf.irr(dollars)
+
+        return irr_vec
+    
+    def check_nu(self, nu):
+        # Checks on nu
+        if not isinstance(nu, float):
+            raise TypeError("nu not an instance of float")
+        if nu < 0.0 or nu >= 1.0:
+            raise ValueError("nu < 0.0 or nu >= 1.0")
 
 ######
 # Test
@@ -179,5 +229,26 @@ cash_flow = [-100, 15, 15, 15, 15, 115]
 
 irr_vec = my_option.paths_irr(cash_flow)
 
-plt.hist(irr_vec)
+plt.hist(irr_vec, alpha=.5, density=True)
+plt.xlabel('IRR')
+plt.title('IRR of Portfolio without hedging')
+plt.show()
+
+notional_amount = 100000000
+option_value = notional_amount*V0
+print(option_value)
+
+hedged_irr = my_option.hedge_irr(cash_flow)
+
+plt.hist(hedged_irr, alpha=.5, color='orange', density=True)
+plt.xlabel('IRR')
+plt.title('IRR of Hedged Portfolio')
+plt.show()
+
+# Compare distributions
+plt.hist(irr_vec, alpha=.5, label='Not hedged', density=True)
+plt.hist(hedged_irr, alpha=.5, color='orange', label='Hedged', density=True)
+plt.xlabel('IRR')
+plt.title('IRR with and without hedging')
+plt.legend()
 plt.show()
