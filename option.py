@@ -137,9 +137,7 @@ class Put:
         cash_flow : cash flow.
         nu        : asset price increase/decrease proportion.
         """
-
-        # Checks on cash flow
-        
+        self.check_cash_flow(cash_flow)
 
         paths = self.comp_paths(nu)
 
@@ -163,7 +161,9 @@ class Put:
         nu           : asset price increase/decrease proportion.
         """
 
-        # ADD CHECKS ON PARAMETERS
+        self.check_cash_flow(cash_flow)
+        if notional_amount <= 0:
+            raise ValueError("notional_amount <= 0")
 
         # Compute the option value and subtract it from the outgoing cash flow
         option_val_unit = self.value(nu) # dollar value
@@ -195,6 +195,21 @@ class Put:
             raise TypeError("nu not an instance of float")
         if nu < 0.0 or nu >= 1.0:
             raise ValueError("nu < 0.0 or nu >= 1.0")
+        
+    def check_cash_flow(self, cash_flow):
+        # Checks on cash flow
+        if not isinstance(cash_flow, np.ndarray):
+            raise TypeError("cash_flow not a numpy array")
+        if not isinstance(cash_flow[0], np.integer):
+            raise TypeError("cash_flow should be integers")
+        if cash_flow[0] >= 0:
+            raise ValueError("cash_flow[0] >= 0")
+        if np.any(cash_flow[1:] < 0):
+            raise ValueError("All elements of cash_flow[1:] should be non-negative")
+        if cash_flow.ndim != 1:
+            raise ValueError("cash_flow.ndim != 0")
+        if 2*(cash_flow.shape[0]-1) != self.N:
+            raise ValueError("cash_flow has incorrect shape")
 
 ######
 # Test
@@ -225,7 +240,7 @@ em = my_option.expected_max(nu_single)
 
 print(em)
 
-cash_flow = [-100, 15, 15, 15, 15, 115]
+cash_flow = np.array([-100, 15, 15, 15, 15, 115], dtype=int)
 
 irr_vec = my_option.paths_irr(cash_flow)
 
