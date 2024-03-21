@@ -39,6 +39,8 @@ class Put:
 
     def value(self, nu):
         """
+        QUESTION 1
+
         Compute the value of the option.
 
         Used:
@@ -64,6 +66,8 @@ class Put:
     
     def calibrate(self, V):
         """
+        QUESTION 2
+        
         Given the strike and value of the option, calibrate nu
         """
 
@@ -120,6 +124,8 @@ class Put:
 
     def expected_max(self, nu):
         """
+        QUESTION 3
+        
         The expectation of the maximum stock price, over the N periods
 
         nu : asset price increase/decrease proportion
@@ -212,58 +218,54 @@ class Put:
             raise ValueError("cash_flow has incorrect shape")
 
 ######
-# Test
+# Main
 ######
+        
+if __name__ == "__main__":
     
-S0 = 1.28065
-K  = 1.28065
-N = 10
-my_option = Put(S0, K, N)
+    S0 = 1.28065
+    K  = 1.28065
+    N = 10
+    my_option = Put(S0, K, N)
 
-nu_single=0.05
-V0 = my_option.value(nu_single)
-print(V0)
+    nu_single=0.05
+    V0 = my_option.value(nu_single)
+    print(f"Value of the option: {V0}")
 
-nu0 = my_option.calibrate(V0)
-print(nu0)
+    nu0 = my_option.calibrate(V0)
+    print(nu0)
 
-"""
-nu = np.linspace(0.001, 0.99, 100)
-V = np.zeros(nu.shape)
-for i, value in enumerate(nu):
-    V[i] = my_option.value(value)
-plt.plot(nu, V)
-plt.show()
-"""
+    em = my_option.expected_max(nu_single)
 
-em = my_option.expected_max(nu_single)
+    print(em)
 
-print(em)
+    cash_flow = np.array([-100, 15, 15, 15, 15, 115], dtype=int)
 
-cash_flow = np.array([-100, 15, 15, 15, 15, 115], dtype=int)
+    irr_vec = my_option.paths_irr(cash_flow)
 
-irr_vec = my_option.paths_irr(cash_flow)
+    plt.figure(figsize=(8,6))
+    plt.hist(irr_vec, alpha=.5, density=True)
+    plt.xlabel('IRR')
+    plt.title('IRR of Portfolio without hedging')
+    plt.savefig("irr_no_hedge.pdf")
 
-plt.hist(irr_vec, alpha=.5, density=True)
-plt.xlabel('IRR')
-plt.title('IRR of Portfolio without hedging')
-plt.show()
+    notional_amount = 100000000
+    option_value = notional_amount*V0
+    print(option_value)
 
-notional_amount = 100000000
-option_value = notional_amount*V0
-print(option_value)
+    hedged_irr = my_option.hedge_irr(cash_flow)
 
-hedged_irr = my_option.hedge_irr(cash_flow)
+    plt.figure(figsize=(8,6))
+    plt.hist(hedged_irr, alpha=.5, color='orange', density=True)
+    plt.xlabel('IRR')
+    plt.title('IRR of Hedged Portfolio')
+    plt.savefig("irr_hedged.pdf")
 
-plt.hist(hedged_irr, alpha=.5, color='orange', density=True)
-plt.xlabel('IRR')
-plt.title('IRR of Hedged Portfolio')
-plt.show()
-
-# Compare distributions
-plt.hist(irr_vec, alpha=.5, label='Not hedged', density=True)
-plt.hist(hedged_irr, alpha=.5, color='orange', label='Hedged', density=True)
-plt.xlabel('IRR')
-plt.title('IRR with and without hedging')
-plt.legend()
-plt.show()
+    # Compare distributions
+    plt.figure(figsize=(8,6))
+    plt.hist(irr_vec, alpha=.5, label='Not hedged', density=True)
+    plt.hist(hedged_irr, alpha=.5, color='orange', label='Hedged', density=True)
+    plt.xlabel('IRR')
+    plt.title('IRR with and without hedging')
+    plt.legend()
+    plt.savefig("irr_with_without_hedging.pdf")
