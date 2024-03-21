@@ -230,14 +230,14 @@ if __name__ == "__main__":
 
     nu_single=0.05
     V0 = my_option.value(nu_single)
-    print(f"Value of the option: {V0}")
+    print(f"Value of the option, when nu={nu_single}, is {V0}")
 
     nu0 = my_option.calibrate(V0)
-    print(nu0)
+    print(f"Calibrated value of nu, when the price is {V0}, is {nu0}")
 
     em = my_option.expected_max(nu_single)
 
-    print(em)
+    print(f"Expected maximum value of path, for nu={nu_single} and N={N}, is {em}")
 
     cash_flow = np.array([-100, 15, 15, 15, 15, 115], dtype=int)
 
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
     notional_amount = 100000000
     option_value = notional_amount*V0
-    print(option_value)
+    print(f"Value of put option, for notional amount {notional_amount}, K=S0={S0}, is {option_value}")
 
     hedged_irr = my_option.hedge_irr(cash_flow)
 
